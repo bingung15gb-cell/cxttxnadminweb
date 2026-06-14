@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CXTTXN Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c0b09;
+      --surface: #131210;
+      --surface-2: #1b1915;
+      --text: #ddd8cc;
+      --text-dim: #6b6558;
+      --brown: #8c6840;
+      --brown-deep: #3a2c1e;
+      --cream: #ede7d8;
+      --rule: 1px solid #2a211a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .admin-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .admin-sidebar {
+      width: 280px;
+      background: var(--surface);
+      border-right: var(--rule);
+      padding: 20px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .admin-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: .18em;
+      color: var(--cream);
+      margin-bottom: 32px;
+      display: block;
+    }
+
+    .admin-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .admin-nav-item {
+      display: block;
+      padding: 10px 12px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .admin-nav-item.active,
+    .admin-nav-item:hover {
+      color: var(--cream);
+      background: var(--brown-deep);
+      border-left-color: var(--brown);
+    }
+
+    .admin-main {
+      flex: 1;
+      background: var(--bg);
+      overflow-y: auto;
+    }
+
+    .admin-content {
+      padding: 32px 24px;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .admin-header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      color: var(--cream);
+      letter-spacing: .08em;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 16px;
+      font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      border: 1px solid var(--brown);
+      background: var(--brown);
+      color: var(--cream);
+      cursor: pointer;
+      transition: all .18s;
+      border-radius: 0;
+    }
+
+    .btn:hover {
+      background: var(--cream);
+      color: var(--bg);
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .admin-card {
+      background: var(--surface);
+      border: var(--rule);
+      padding: 20px;
+    }
+
+    .admin-card h3 {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .admin-stat {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 40px;
+      color: var(--cream);
+      line-height: 1;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: var(--rule);
+      font-size: 11px;
+    }
+
+    .admin-table th {
+      background: var(--surface);
+      padding: 10px;
+      text-align: left;
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: var(--rule);
+    }
+
+    .admin-table td {
+      padding: 10px;
+      border-bottom: var(--rule);
+      color: var(--text);
+    }
+
+    .admin-table tr:hover {
+      background: var(--surface-2);
+    }
+
+    .admin-form {
+      background: var(--surface);
+      border: var(--rule);
+      padding: 20px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .admin-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .admin-form label span {
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .admin-form input,
+    .admin-form textarea {
+      background: var(--bg);
+      border: var(--rule);
+      padding: 8px 10px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+    }
+
+    .admin-form input:focus,
+    .admin-form textarea:focus {
+      outline: none;
+      border-color: var(--brown);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    @media (max-width: 768px) {
+      .admin-container {
+        flex-direction: column;
+      }
+
+      .admin-sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: var(--rule);
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .admin-logo { margin-bottom: 0; }
+
+      .admin-nav {
+        flex-direction: row;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+
+      .admin-nav-item {
+        padding: 6px 10px;
+        font-size: 9px;
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
+      }
+
+      .admin-content {
+        padding: 16px;
+      }
+
+      .admin-header h1 {
+        font-size: 20px;
+      }
+
+      .admin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .admin-table {
+        font-size: 10px;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-container">
+  <aside class="admin-sidebar">
+    <div class="admin-logo">CXTTXN</div>
+    <nav class="admin-nav">
+      <button class="admin-nav-item active" onclick="showPage('dashboard')">Dashboard</button>
+      <button class="admin-nav-item" onclick="showPage('products')">Products</button>
+      <button class="admin-nav-item" onclick="showPage('orders')">Orders</button>
+      <button class="admin-nav-item" onclick="showPage('website')">Website</button>
+      <button class="admin-nav-item" onclick="showPage('settings')">Settings</button>
+    </nav>
+  </aside>
+
+  <main class="admin-main">
+    <!-- DASHBOARD PAGE -->
+    <div id="dashboard" class="page active">
+      <div class="admin-content">
+        <div class="admin-header">
+          <h1>Dashboard</h1>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-card">
+            <h3>Total Products</h3>
+            <p class="admin-stat">12</p>
+          </div>
+          <div class="admin-card">
+            <h3>Total Orders</h3>
+            <p class="admin-stat">8</p>
+          </div>
+          <div class="admin-card">
+            <h3>Pending Orders</h3>
+            <p class="admin-stat">3</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS PAGE -->
+    <div id="products" class="page">
+      <div class="admin-content">
+        <div class="admin-header">
+          <h1>Products</h1>
+          <button class="btn" onclick="openAddModal()">+ Add Product</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Series</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Star Bound Hoodie</td>
+              <td>Vol.11</td>
+              <td>Rp 320K</td>
+              <td>5</td>
+              <td><button style="padding:4px 8px; font-size:9px; background:var(--brown-deep); border:1px solid var(--brown); color:var(--text); cursor:pointer;">Edit</button></td>
+            </tr>
+            <tr>
+              <td>Composed in Chaos Tee</td>
+              <td>Vol.10</td>
+              <td>Rp 160K</td>
+              <td>12</td>
+              <td><button style="padding:4px 8px; font-size:9px; background:var(--brown-deep); border:1px solid var(--brown); color:var(--text); cursor:pointer;">Edit</button></td>
+            </tr>
+            <tr>
+              <td>Quiet Devotion Tee</td>
+              <td>Vol.09</td>
+              <td>Rp 120K</td>
+              <td>0</td>
+              <td><button style="padding:4px 8px; font-size:9px; background:var(--brown-deep); border:1px solid var(--brown); color:var(--text); cursor:pointer;">Edit</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ORDERS PAGE -->
+    <div id="orders" class="page">
+      <div class="admin-content">
+        <div class="admin-header">
+          <h1>Orders</h1>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>#ORD001</td>
+              <td>Budi Santoso</td>
+              <td>Rp 640K</td>
+              <td>pending</td>
+              <td><select style="padding:4px; background:var(--bg); border:var(--rule); color:var(--text); font-size:10px; cursor:pointer;"><option>pending</option><option>confirmed</option><option>shipped</option></select></td>
+            </tr>
+            <tr>
+              <td>#ORD002</td>
+              <td>Rina Kusuma</td>
+              <td>Rp 320K</td>
+              <td>confirmed</td>
+              <td><select style="padding:4px; background:var(--bg); border:var(--rule); color:var(--text); font-size:10px; cursor:pointer;"><option>pending</option><option selected>confirmed</option><option>shipped</option></select></td>
+            </tr>
+            <tr>
+              <td>#ORD003</td>
+              <td>Ahmad Wijaya</td>
+              <td>Rp 480K</td>
+              <td>shipped</td>
+              <td><select style="padding:4px; background:var(--bg); border:var(--rule); color:var(--text); font-size:10px; cursor:pointer;"><option>pending</option><option>confirmed</option><option selected>shipped</option></select></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WEBSITE PAGE -->
+    <div id="website" class="page">
+      <div class="admin-content">
+        <div class="admin-header">
+          <h1>Website Content</h1>
+        </div>
+        <form class="admin-form">
+          <label>
+            <span>Hero Title</span>
+            <input type="text" value="CXTTXN HOME OF FUN." />
+          </label>
+          <label>
+            <span>Hero Tagline</span>
+            <textarea>integrity stays, nothing else does.</textarea>
+          </label>
+          <label>
+            <span>Hero Stamp (Series)</span>
+            <input type="text" value="2322+4" />
+          </label>
+          <label>
+            <span>Event Title</span>
+            <input type="text" value="AT COLORTONES." />
+          </label>
+          <label>
+            <span>Event Date</span>
+            <input type="text" value="20 — 23 June 2026" />
+          </label>
+          <label>
+            <span>Event Venue</span>
+            <input type="text" value="Colortones" />
+          </label>
+          <label>
+            <span>Event City</span>
+            <input type="text" value="Yogyakarta, ID" />
+          </label>
+          <label>
+            <span>Manifesto Text</span>
+            <textarea>A place for fun even when it feels off. People leave. Things change. Integrity stays, nothing else does.</textarea>
+          </label>
+          <label>
+            <span>Shop Description</span>
+            <textarea>Clothing brand for skateboard culture. Est. 2322+4</textarea>
+          </label>
+          <label>
+            <span>Ticker Banner Text</span>
+            <textarea>POP UP AT COLORTONES — 20–23 JUNE 2026 — YOGYAKARTA ★ STAR BOUND VOL.11</textarea>
+          </label>
+          <button type="button" class="btn">Save Website Content</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="settings" class="page">
+      <div class="admin-content">
+        <div class="admin-header">
+          <h1>Settings</h1>
+        </div>
+        <form class="admin-form">
+          <label>
+            <span>Shop Name</span>
+            <input type="text" value="CXTTXN" />
+          </label>
+          <label>
+            <span>Instagram URL</span>
+            <input type="text" value="https://instagram.com/cxttxnnn" />
+          </label>
+          <label>
+            <span>Contact Email</span>
+            <input type="email" value="contact@cxttxn.com" />
+          </label>
+          <label>
+            <span>Shop Description</span>
+            <textarea>Integrity stays, nothing else does.</textarea>
+          </label>
+          <button type="button" class="btn">Save Settings</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+<!-- ADD PRODUCT MODAL -->
+<div id="add-product-modal" style="display: none; position: fixed; inset: 0; background: rgba(12,11,9,0.9); z-index: 9999; overflow-y: auto; padding: 40px 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: var(--bg); border: var(--rule); padding: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--cream);">Add New Product</h2>
+      <button onclick="closeAddModal()" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-family: inherit; font-size: 12px; letter-spacing: .1em;">[ CLOSE ]</button>
+    </div>
+    <form id="add-product-form" class="admin-form" style="border: none; padding: 0; margin: 0;" onsubmit="submitNewProduct(event)">
+      <label>
+        <span>Product Name</span>
+        <input type="text" id="prod-name" required />
+      </label>
+      <label>
+        <span>Series / Vol</span>
+        <input type="text" id="prod-series" placeholder="e.g. Vol.12" required />
+      </label>
+      <label>
+        <span>Price (IDR)</span>
+        <input type="number" id="prod-price" required />
+      </label>
+      <label>
+        <span>Description</span>
+        <textarea id="prod-desc" rows="3" required></textarea>
+      </label>
+      <label>
+        <span>Product Image (Required)</span>
+        <input type="file" id="prod-image" accept="image/*" required style="padding: 12px 0; border: none;" />
+      </label>
+      <button type="submit" id="prod-submit-btn" class="btn" style="margin-top: 16px;">Upload & Publish</button>
+    </form>
+  </div>
+</div>
+
+</div>
+
+
+<script>
+// ─── MODE DETECTION SYSTEM ──────────────────────
+// Development mode: when opened locally (file:// or localhost)
+// Publish mode: when deployed to production
+const isDevelopment = window.location.protocol === 'file:' ||
+                      window.location.hostname === 'localhost' ||
+                      window.location.hostname === '127.0.0.1';
+const isPublished = !isDevelopment;
+console.log(`[MODE] ${isDevelopment ? 'DEVELOPMENT' : 'PUBLISH'} | URL: ${window.location.href}`);
+
+const SUPABASE_URL = 'https://puwmufdzlthygruzuefp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1d211ZmR6bHRoeWdydXp1ZWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjEyOTIsImV4cCI6MjA5NjczNzI5Mn0.-aoPcLniDTLi-faaysk0LlkKbac_rsxx0jNDgK2cf7c';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+
+  if(event && event.target) {
+    document.querySelectorAll('.admin-nav-item').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+}
+
+function openAddModal() {
+  document.getElementById('add-product-modal').style.display = 'block';
+}
+
+function closeAddModal() {
+  document.getElementById('add-product-modal').style.display = 'none';
+  document.getElementById('add-product-form').reset();
+}
+
+async function fetchProducts() {
+  const tbody = document.querySelector('#products tbody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading products...</td></tr>';
+
+  try {
+    let data = null;
+    let error = null;
+
+    if (isDevelopment) {
+      // DEVELOPMENT MODE: Load dummy data from localStorage
+      console.log('[DEVELOPMENT MODE] Loading dummy products from localStorage');
+      data = JSON.parse(localStorage.getItem('dev_products') || '[]');
+      if (data.length === 0) {
+        // Initialize with sample dummy data if empty
+        data = [
+          {
+            id: 'dev-vol11',
+            name: 'Star Bound Hoodie [DEV]',
+            series: 'Vol.11',
+            price: 320000,
+            status: 'active',
+            images: ['event_vol11.jpg'],
+            description: '[DUMMY] A form of love that stays quiet'
+          },
+          {
+            id: 'dev-vol10',
+            name: 'Composed in Chaos [DEV]',
+            series: 'Vol.10',
+            price: 160000,
+            status: 'active',
+            images: ['event_vol10.jpg'],
+            description: '[DUMMY] Finding balance within noise'
+          }
+        ];
+        localStorage.setItem('dev_products', JSON.stringify(data));
+      }
+    } else {
+      // PUBLISH MODE: Fetch from Supabase
+      console.log('[PUBLISH MODE] Fetching products from Supabase cloud');
+      const result = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+      data = result.data;
+      error = result.error;
+    }
+
+    if (error) {
+      console.error(error);
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--red);">Error loading products</td></tr>';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No products found.</td></tr>';
+      return;
+    }
+
+    document.querySelector('#dashboard .admin-grid .admin-card:nth-child(1) .admin-stat').innerText = data.length;
+
+    tbody.innerHTML = data.map(p => `
+      <tr>
+        <td>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="${p.images && p.images.length > 0 ? p.images[0] : ''}" style="width: 32px; height: 32px; object-fit: cover; background: var(--surface-2);" />
+            ${p.name}
+          </div>
+        </td>
+        <td>${p.series || '-'}</td>
+        <td>Rp ${p.price.toLocaleString('id-ID')}</td>
+        <td>
+          <span style="padding: 2px 6px; border-radius: 4px; font-size: 9px; ${p.status === 'active' ? 'background: #2b4a2b; color: #8fce8f;' : 'background: #4a4a4a; color: #ccc;'}">
+            ${p.status.toUpperCase()}
+          </span>
+        </td>
+        <td><button onclick="deleteProduct('${p.id}')" style="padding:4px 8px; font-size:9px; background:var(--bg); border:1px solid #b83535; color:#b83535; cursor:pointer;">Delete</button></td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--red);">Error loading products</td></tr>';
+  }
+}
+
+async function submitNewProduct(e) {
+  e.preventDefault();
+
+  const btn = document.getElementById('prod-submit-btn');
+  btn.innerText = 'UPLOADING...';
+  btn.disabled = true;
+
+  try {
+    const name = document.getElementById('prod-name').value;
+    const series = document.getElementById('prod-series').value;
+    const price = parseInt(document.getElementById('prod-price').value);
+    const desc = document.getElementById('prod-desc').value;
+    const fileInput = document.getElementById('prod-image');
+
+    let imageUrl = '';
+
+    if (isDevelopment) {
+      // DEVELOPMENT MODE: Use placeholder image
+      console.log('[DEVELOPMENT MODE] Using placeholder image for new product');
+      imageUrl = 'event_vol11.jpg';
+    } else {
+      // PUBLISH MODE: Upload to Supabase storage
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+          .from('Product Image')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabaseClient.storage
+          .from('Product Image')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrlData.publicUrl;
+      }
+    }
+
+    const productData = {
+      name: name,
+      series: series,
+      price: price,
+      description: desc,
+      images: imageUrl ? [imageUrl] : [],
+      status: 'active'
+    };
+
+    if (isDevelopment) {
+      // DEVELOPMENT MODE: Save to localStorage
+      console.log('[DEVELOPMENT MODE] Saving product to localStorage', productData);
+      const devProducts = JSON.parse(localStorage.getItem('dev_products') || '[]');
+      productData.id = 'dev-' + Date.now();
+      devProducts.push(productData);
+      localStorage.setItem('dev_products', JSON.stringify(devProducts));
+      alert('Product saved to development storage (localStorage)');
+    } else {
+      // PUBLISH MODE: Save to Supabase
+      console.log('[PUBLISH MODE] Saving product to Supabase cloud');
+      const { error: insertError } = await supabaseClient.from('products').insert([productData]);
+      if (insertError) throw insertError;
+      alert('Product uploaded successfully!');
+    }
+
+    closeAddModal();
+    fetchProducts();
+  } catch (err) {
+    console.error('Error adding product:', err);
+    alert('Failed to add product. Error: ' + err.message);
+  } finally {
+    btn.innerText = 'ADD PRODUCT';
+    btn.disabled = false;
+  }
+}
+      series: series,
+      price: price,
+      description: desc,
+      status: 'active',
+      images: imageUrl ? [imageUrl] : []
+    }]);
+    
+    if (insertError) throw insertError;
+    
+    closeAddModal();
+    fetchProducts();
+    
+  } catch(err) {
+    console.error(err);
+    alert('Error: ' + err.message);
+  } finally {
+    btn.innerText = 'Upload & Publish';
+    btn.disabled = false;
+  }
+}
+
+async function deleteProduct(id) {
+  if(!confirm('Are you sure you want to delete this product?')) return;
+
+  try {
+    if (isDevelopment) {
+      // DEVELOPMENT MODE: Delete from localStorage
+      console.log('[DEVELOPMENT MODE] Deleting product from localStorage:', id);
+      const devProducts = JSON.parse(localStorage.getItem('dev_products') || '[]');
+      const filtered = devProducts.filter(p => p.id !== id);
+      localStorage.setItem('dev_products', JSON.stringify(filtered));
+      alert('Product deleted from development storage');
+    } else {
+      // PUBLISH MODE: Delete from Supabase
+      console.log('[PUBLISH MODE] Deleting product from Supabase cloud:', id);
+      const { error } = await supabaseClient.from('products').delete().eq('id', id);
+      if (error) throw error;
+      alert('Product deleted successfully');
+    }
+    fetchProducts();
+  } catch (err) {
+    console.error('Error deleting product:', err);
+    alert('Failed to delete: ' + err.message);
+  }
+}
+
+async function fetchOrders() {
+  const tbody = document.querySelector('#orders tbody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading orders...</td></tr>';
+
+  try {
+    let data = null;
+    let error = null;
+
+    if (isDevelopment) {
+      // DEVELOPMENT MODE: Load dummy orders from localStorage
+      console.log('[DEVELOPMENT MODE] Loading dummy orders from localStorage');
+      data = JSON.parse(localStorage.getItem('dev_orders') || '[]');
+      if (data.length === 0) {
+        // Initialize with sample dummy data if empty
+        data = [
+          {
+            id: 'CX-DEV-SAMPLE01',
+            customer_name: '[DEV] John Doe',
+            customer_email: 'dev@example.com',
+            customer_phone: '0812-3456-7890',
+            total_price: 320000,
+            status: 'pending',
+            items: [{name: 'Star Bound Hoodie', quantity: 1, price: 320000}],
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'CX-DEV-SAMPLE02',
+            customer_name: '[DEV] Jane Smith',
+            customer_email: 'dev2@example.com',
+            customer_phone: '0898-7654-3210',
+            total_price: 160000,
+            status: 'completed',
+            items: [{name: 'Composed in Chaos', quantity: 1, price: 160000}],
+            created_at: new Date(Date.now() - 86400000).toISOString()
+          }
+        ];
+        localStorage.setItem('dev_orders', JSON.stringify(data));
+      }
+    } else {
+      // PUBLISH MODE: Fetch from Supabase
+      console.log('[PUBLISH MODE] Fetching orders from Supabase cloud');
+      const result = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+      data = result.data;
+      error = result.error;
+    }
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No orders found.</td></tr>';
+      document.querySelector('#dashboard .admin-grid .admin-card:nth-child(2) .admin-stat').innerText = '0';
+      document.querySelector('#dashboard .admin-grid .admin-card:nth-child(3) .admin-stat').innerText = '0';
+      return;
+    }
+
+    document.querySelector('#dashboard .admin-grid .admin-card:nth-child(2) .admin-stat').innerText = data.length;
+    document.querySelector('#dashboard .admin-grid .admin-card:nth-child(3) .admin-stat').innerText = data.filter(o => o.status === 'pending').length;
+
+    tbody.innerHTML = data.map(o => `
+      <tr>
+        <td style="font-family: monospace;">${o.id.slice(0,8).toUpperCase()}</td>
+        <td>${o.customer_name}<br><small style="color: var(--text-dim)">${o.customer_phone}</small></td>
+        <td>Rp ${o.total_price.toLocaleString('id-ID')}</td>
+        <td>
+          <span style="padding: 2px 6px; border-radius: 4px; font-size: 9px; ${o.status === 'pending' ? 'background: #4a3a1b; color: #e6b85c;' : 'background: #2b4a2b; color: #8fce8f;'}">
+            ${o.status.toUpperCase()}
+        </span>
+      </td>
+      <td>
+        <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:4px; background:var(--bg); border:var(--rule); color:var(--text); font-size:10px; cursor:pointer;">
+          <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+          <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+          <option value="shipped" ${o.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+        </select>
+      </td>
+    </tr>
+  `).join('');
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--red);">Error loading orders</td></tr>';
+  }
+}
+}
+
+async function updateOrderStatus(id, newStatus) {
+  try {
+    if (isDevelopment) {
+      // DEVELOPMENT MODE: Update in localStorage
+      console.log('[DEVELOPMENT MODE] Updating order status in localStorage:', id, newStatus);
+      const devOrders = JSON.parse(localStorage.getItem('dev_orders') || '[]');
+      const order = devOrders.find(o => o.id === id);
+      if (order) {
+        order.status = newStatus;
+        localStorage.setItem('dev_orders', JSON.stringify(devOrders));
+        alert('Order status updated in development storage');
+      }
+    } else {
+      // PUBLISH MODE: Update in Supabase
+      console.log('[PUBLISH MODE] Updating order status in Supabase cloud:', id, newStatus);
+      const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      alert('Order status updated successfully');
+    }
+    fetchOrders();
+  } catch (err) {
+    console.error('Error updating order status:', err);
+    alert('Failed to update status: ' + err.message);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  fetchProducts();
+  fetchOrders();
+});
+</script>
+
+
+</body>
+</html>
